@@ -92,7 +92,7 @@ document.addEventListener("DOMContentLoaded", () => {
             gsap.to(img, {
                 x: distX * 1200,
                 y: distY * 600,
-                scale: 5,
+                scale: 8,
                 duration: 2.5,
                 ease: "power4.inOut"
             });
@@ -101,6 +101,101 @@ document.addEventListener("DOMContentLoaded", () => {
         zoomOutBtn.classList.remove("active");
         zoomInBtn.classList.add("active");
     });
+
+
+    let isDragging = false;
+    let startX = 0;
+    let startY = 0;
+    let initialX = 0;
+    let initialY = 0;
+    let targetX = 0;
+    let targetY = 0;
+    let currentX = 0;
+    let currentY = 0;
+
+
+    function lerp(start, end, factor) {
+        return start + (end - start) * factor;
+    }
+
+    function animate() {
+        if (isDragging || Math.abs(targetX - currentX) > 0.01 || Math.abs(targetY - currentY) > 0.01) {
+            currentX = lerp(currentX, targetX, 0.08);
+            currentY = lerp(currentY, targetY, 0.08);
+
+            requestAnimationFrame(() => {
+                gallery.style.transform = `translate3d(${currentX}px, ${currentY}px, 0)`;
+            });
+        }
+
+        requestAnimationFrame(animate);
+    }
+
+    animate();
+
+
+
+    function handleDragStart(e) {
+        if (!isZoomed) return;
+
+        isDragging = true;
+        dragLayer.classList.add("active");
+
+        startX = e.type === "mousedown" ? e.pageX : e.touches[0].pageX;
+        startY = e.type === "mousedown" ? e.pageY : e.touches[0].pageY;
+
+        const transform = window.getComputedStyle(gallery).transform;
+        const matrix = new DOMMatrix(transform);
+        initialX = matrix.m41;
+        initialY = matrix.m42;
+
+        currentX = initialX;
+        currentY = initialY;
+        targetX = initialX;
+        targetY = initialY;
+
+        if (e.type === "mousedown") {
+            document.addEventListener("mousemove", handleDragMove, {
+                passive: false
+            });
+            document.addEventListener("mouseup", handleDragEnd);
+        } else {
+            document.addEventListener("touchmove", handleDragMove, {
+                passive: false
+            });
+            document.addEventListener("touchend", handleDragEnd);
+
+        }
+    }
+
+
+    function handleDragMove(e) {
+        if (!isDragging) return;
+        e.preventDefault();
+
+        const currentPositionX = e.type === "mousemove" ? e.pageX : e.touches[0].pageX;
+        const currentPositionY = e.type === "mousemove" ? e.pageY : e.touches[0].pageY;
+
+        const deltaX = currentPositionX - startX;
+        const deltaY = currentPositionY - startY;
+
+        targetX = initialX + deltaX;
+        targetY = initialY + deltaY;
+    }
+
+
+    function handleDragEnd() {
+        isDragging = false;
+        dragLayer.classList.remove("active");
+
+        document.removeEventListener("mousemove", handleDragMove);
+        document.removeEventListener("touchmove", handleDragMove);
+        document.removeEventListener("mouseup", handleDragEnd);
+        document.removeEventListener("touchend", handleDragEnd);
+    }
+
+    dragLayer.addEventListener("mousedown", handleDragStart);
+    dragLayer.addEventListener("touchstart", handleDragStart);
 });
 
 
